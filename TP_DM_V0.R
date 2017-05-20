@@ -5,7 +5,9 @@
 
 rm(list=ls()) # Elimino todo lo que haya en memoria
 # Defino el directoria de trabajo
-setwd("C:/Users/ruben_nuc/Desktop/TPDM2017") 
+setwd("C:/Users/e_flecha/Documents/GitHub/TPDM2017") 
+# C:\Users\e_flecha\Desktop\TPDM2017
+# C:\Users\e_flecha\Documents\GitHub\TPDM2017
 
 #Confirmo mi directorio de trabajo
 getwd()
