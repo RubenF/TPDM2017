@@ -1,0 +1,3 @@
+18-5-2017
+ged50V5.csv
+Se agrega columnas duration y duration-1
