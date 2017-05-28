@@ -175,3 +175,96 @@ dim(w4)
 head(w4)
 
 write.csv(w4, file = "salida.csv")
+#------------------------------------------------
+
+
+# Lectura de los datos
+# Version RDatafile
+#message("Cargando datos...")
+#load("ged50.Rdata") 
+#message("Carga de datos --> LISTO!!!")
+#------------------------
+#Solo paises que ayudan
+message("Cargando datos...")
+ayuda <- read.csv("extsup_smallV3.csv", sep = ",", header = T)
+message("Carga de datos --> LISTO!!!")
+
+ggplot(ayuda, aes(x = external_1)) + geom_bar()
+
+str(ayuda)
+plot(ayuda$external_1)
+
+plot(ayuda$external_1)
+
+dat <- data.frame(ayuda$external_1)
+
+yo <- (  dat %>% 
+           group_by(ayuda.external_1) %>%
+           summarise(no_rows = length(ayuda.external_1))  )
+str(yo)
+
+yo2 <- data.frame(yo)
+
+yo$no_rows
+
+yo3 <-yo2[order(-yo2$no_rows),]
+yo4 <- yo3 [1:10,]
+str(yo4)
+head(yo4)
+pie1 <- ggplot(yo4, aes(x = yo$ayuda.external_1, fill = yo$no_rows)) +
+  geom_bar(width=1) + 
+  coord_polar(theta = "y")
+pie1
+#---------------------------
+
+
+
+#filter(ayuda_short, conflictID == 137)
+
+# Agrego una variable ayuda_anio, que es la union: Pais q recibe ayuda + pais que ayuda + codigo ayudas
+
+ayuda_short$ayuda_anio = paste(ayuda_short$ywp_name, ayuda_short$external_name, ayuda_short$external_type_code, sep="-")
+ayuda_short
+head(ayuda_short)
+
+filter(ayuda_short, conflictID == 92)
+
+test <- select(ayuda_short,ywp_year, conflictID,  ayuda_anio)
+test <-test[order(test$ywp_year, test$conflictID),]
+head(test)
+filter(test, conflictID == 92)
+
+DT <- data.table(test)
+DT
+typeof(DT)
+
+# Cuento cantidad de ayudas por conflicto y por año
+DT[,num := seq_len(.N), by=c("ywp_year","conflictID")]
+#DT[,id := rowid(ywp_year)]
+head(DT)
+dim(DT)
+
+DT<-DT[order(DT$ywp_year),]
+
+# Pivoteo tabla. Tengo un registro por cada combinacion año-conflicto y todas las ayudas en columnas
+w <- reshape(data = DT,
+             idvar = c("ywp_year","conflictID"),
+             v.names = c("ayuda_anio"),
+             timevar = "num",
+             direction = "wide")
+
+fil<- (  w %>%
+           group_by(ywp_year, conflictID)          )
+
+dim(w)
+head(w)
+fix(w)
+head(fil)
+dim(fil)
+write.csv(w, file = "salida.csv")
+
+#------------------
+
+data("Groceries")
+head(Groceries)
+Groceries

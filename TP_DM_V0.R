@@ -6,18 +6,18 @@
 #           Flecha, Rubén
 #           Gil, Myriam
 
+# Elimino todo lo que haya en memoria
+rm(list=ls()) 
 
-rm(list=ls()) # Elimino todo lo que haya en memoria
-# Defino el directoria de trabajo
+# Defino el directorio de trabajo
 setwd("C:/Users/e_flecha/Documents/GitHub/TPDM2017") 
 # C:\Users\e_flecha\Desktop\TPDM2017
 # C:\Users\e_flecha\Documents\GitHub\TPDM2017
 
-#Confirmo mi directorio de trabajo
+#Confirmo directorio de trabajo
 getwd()
 
 # Importo librerías a utilizar
-
 if(!require("sqldf")) install.packages("sqldf")
 library(sqldf)
 
@@ -33,29 +33,82 @@ library(dplyr)
 if(!require("data.table")) install.packages("data.table")
 library(data.table)
 
-# Lectura de los datos
-# Version RDatafile
-#message("Cargando datos...")
-#load("ged50.Rdata") 
-#message("Carga de datos --> LISTO!!!")
+if(!require("arules")) install.packages("arules")
+library(arules)
 
 
+if(!require("XLConnectJars")) install.packages("XLConnectJars")
+library(XLConnectJars)
+
+if(!require("XLConnect")) install.packages("XLConnect")
+library(XLConnect)
+
+#-----------------------------------------------------------
 # Carga de datos version csv
 message("Cargando datos...")
-ged50 <- read.csv("ged50V4.csv", sep = ";", header = T)
+ged50V6 <- read.csv("ged50V6.csv", sep = ",", header = T)
 message("Carga de datos --> LISTO!!!")
 
-dim(ged50)
-str(ged50)
+str(ged50V6)
+dim(ged50V6)
+head(ged50V6)
+# dim ged50V4.csv
+#[1] 128264     48
+
+# dim(ged50V6) <- Al eliminar duplicados, el número de registros queda en:
+#[1] 127789     47
+
+# En la variable GED50 armo el data frame con la estrucutra que quiero
+GED50 <- select(ged50V6,  id,
+                          relid,
+                        # key2,
+                        # key1,
+                          year,
+                          active_year,
+                          type_of_violence,
+                          conflict_dset_id,
+                          conflictID,
+                          conflict_name,
+                          dyad_name,
+                          side_a,
+                          side_b,
+                          country,
+                          region,
+                          duration,
+                          best_est)
+head(GED50)
+
+# Creamos la variable GED50_grouped y la agrupamos como mejor queremos
+GED50_grouped <- (  GED50 %>%
+                    group_by(conflictID,
+                            # year,
+                            # conflict_dset_id,
+                             # dyad_name,
+                               side_a, 
+                               side_b
+                             ) %>%
+                    summarize(total_dias = sum(duration),
+                              number_deaths= sum(best_est)))
+
+dim(GED50)
+dim(GED50_grouped)
+head(GED50_grouped)
+typeof(GED50)
+typeof(GED50_grouped)
+str(GED50_grouped)
+write.csv(GED50_grouped, file = "salida.csv")
+
 
 #------------------------------------------------------
 # 1. Análisis Exploratorio de datos
 #------------------------------------------------------
-
-head(ged50)
-str(ged50)
+# Completar!
+#------------------------------------------------------
+head(GED50)
+str(GED50)
+typeof(GED50)
 summary(ged50)
-#ged50$year <- as.factor(ged50$year)
+
 
 # Histograma Cantidad Conflictos por año
 hist(ged50$year)
@@ -70,7 +123,7 @@ type_of_v <- as.factor(ged50$type_of_vi)
 type_of_v
 str(type_of_v)
 
-#Atencion Solo hay 3 tipos de v
+#3 tipos de v
 plot(type_of_v)
 
 # Cantidad de conflictos por año
@@ -84,83 +137,184 @@ plot(where_prec)
 
 
 #------------------------------------------------------
-# 2. Ayuda de Terceros
+# 2. Ayuda de Terceros- Dyadic level (Large)
 #------------------------------------------------------
 
-# Carga de datos de Ayuda de terceros
-
+# Carga de datos de Ayuda de terceros - Version large
 message("Cargando datos...")
-ayuda <- read.csv("extsup_large.csv", sep = ";", header = T)
+ayudaL <- read.csv("extsup_largeV2.csv", sep = ",", header = T)
 message("Carga de datos --> LISTO!!!")
-
+dim(ayudaL)
+# [1] 6519   30
 
 # Nos quedamos solo con las ayudas de 1989 en adelante y los registros que tuvieron ayuda
-ayuda <- filter(ayuda, ywp_year > 1988)
-ayuda <- filter(ayuda, external_exists == 1)
-head(ayuda)
-
+# ayuda <- filter(ayuda, ywp_year > 1988)
+# ayuda <- filter(ayuda, external_exists == 1)
+head(ayudaL)
+dim(ayudaL)
+# [1] 3759   48
+str(ayudaL)
+ayudaL$conflictID <- as.factor(ayudaL$conflictID)
 # Hago una version chica para probar
-ayuda_short <- select(ayuda, external_id, ywp_year, ywp_name, conflictID, external_exists, external_name, external_type_code)
-head(ayuda_short)
-dim(ayuda_short)
-str(ayuda_short)
-typeof(ayuda_short)
-#filter(ayuda_short, conflictID == 137)
+EXTSUP <- select(ayudaL, 
+                      external_id, 
+                      ywp_year, 
+                      ywp_name, 
+                      conflictID, 
+                      external_exists, 
+                      external_name, 
+                      external_type_code)
 
-# Agrego una variable ayuda_anio, que es la union: Pais q recibe ayuda + pais que ayuda + codigo ayudas
 
-ayuda_short$ayuda_anio = paste(ayuda_short$ywp_name, ayuda_short$external_name, ayuda_short$external_type_code, sep="-")
-ayuda_short
-head(ayuda_short)
+head(EXTSUP)
+dim(EXTSUP)
+str(EXTSUP)
+typeof(EXTSUP)
 
-filter(ayuda_short, conflictID == 92)
-
-test <- select(ayuda_short,ywp_year, conflictID,  ayuda_anio)
-test <-test[order(test$ywp_year, test$conflictID),]
-head(test)
-filter(test, conflictID == 92)
-
-DT <- data.table(test)
-DT
-typeof(DT)
-
-# Cuento cantidad de ayudas por conflicto y por año
-DT[,num := seq_len(.N), by=c("ywp_year","conflictID")]
-#DT[,id := rowid(ywp_year)]
-head(DT)
-dim(DT)
-
-DT<-DT[order(DT$ywp_year),]
-
-# Pivoteo tabla. Tengo un registro por cada combinacion año-conflicto y todas las ayudas en columnas
-w <- reshape(data = DT,
-              idvar = c("ywp_year","conflictID"),
-              v.names = c("ayuda_anio"),
-              timevar = "num",
-              direction = "wide")
-
-fil<- (  w %>%
-           group_by(ywp_year, conflictID)           )
-
-dim(w)
-head(w)
-fix(w)
-head(fil)
-dim(fil)
-write.csv(w, file = "salida.csv")
 
 
 #------------------------------------------------------
-# 3. Tratados de Paz
+# 3. Ayuda de Terceros - Conflict level (Small)
+#------------------------------------------------------
+
+# Carga de datos de Ayuda de terceros - Version corta
+message("Cargando datos...")
+ayuda <- read.csv("extsup_smallV2.csv", sep = ",", header = T)
+message("Carga de datos --> LISTO!!!")
+
+dim(ayuda)
+head (ayuda)
+str(ayuda)
+#[1] 3606   62
+# Nos quedamos solo con las ayudas de 1989 en adelante y los registros que tuvieron ayuda
+# ayuda <- filter(ayuda, ywp_year > 1988)
+# ayuda <- filter(ayuda, external_exists == 1)
+
+#------------------------------------------------------
+# 4. Tratados de Paz
 #------------------------------------------------------
 
 # Carga de datos de tratados de paz
+# read.csv no lee los registros bien, tirando 236 (?)
+#message("Cargando datos...")
+#paz <- read.csv("ucdp-peace-agreements_V2.csv", sep = ",", header = T)
+#message("Carga de datos --> LISTO!!!")
+#dim(paz)
+#[1] 236  69
 
-message("Cargando datos...")
-paz <- read.csv("ucdp-peace-agreements.csv", sep = ";", header = T)
-message("Carga de datos --> LISTO!!!")
-head(paz)
+# Usamos mejor XLConnect y leemos el XLS directo
+install.packages("XLConnect")
+library(XLConnect)
+
+paz <- readWorksheetFromFile("ucdp-peace-agreements.xls", sheet = "PA dataset")
 dim(paz)
-ver <- paz$pa_comment
-str(ver)
-head(ver)
+# [1] 216  69   <--- correcto!
+str(paz)
+
+# Nos quedamos solo con las tratos de 1989 en adelante 
+# Revisar. Year no es el año del tratado
+#paz <- filter(paz, Year > 1988)
+#dim(paz)
+# [1] 188  69
+
+# Paz reducido
+ AGREEMENT <- select(paz,
+                     PAID,
+                     Region,
+                     GWNO, 
+                     CID, 
+                     Name, 
+                     DyadName,
+                     bwdID, 
+                     actorId, 
+                     Inc, 
+                     pa_name, 
+                     Year, 
+                     pa_date., 
+                     pa_3rd,
+                     ended, 
+                     cease,
+                     Intarmy,	
+                     DDR,	
+                     Withd,	
+                     Mil_prov,	
+                     pp,	
+                     Intgov,	
+                     Intciv,	
+                     Elections,	
+                     Interrim,	
+                     Natalks,
+                     Shagov,	
+                     Pol_prov,	
+                     Aut,	
+                     Fed,	
+                     Ind,	
+                     Ref,	
+                     Shaloc,	
+                     Regdev,	
+                     Cul,	
+                     Demarcation,	
+                     Locgov,	
+                     Terr_prov,	
+                     Amn,	
+                     pris,	
+                     Recon,	
+                     Return,	
+                     Justice_prov,	
+                     Reaffirm,	
+                     Reaffirm.ID,	
+                     Outlin,	
+                     PKO,	
+                     Co_impl,	
+                     DyVi05,	
+                     CoVi01,
+                     noconf,	
+                     termdur,	
+                     noconf11)
+ 
+head(AGREEMENT)
+
+#----------------------------------------------------------------------------------------------------
+#PRUEBAS
+fil<- (  ayuda %>%  select (year, external_name, conflictID) %>% group_by(external_name, conflictID) %>% summarize(cant=n()) )
+
+fil<- data.frame(ayuda%>%group_by(external_name)%>%summarize(cant=n()))
+
+head(fil)
+filter(fil, external_name=="United States")
+
+# Hago una version chica para probar
+ayuda1 <- select(ayudaL, 
+                 external_id, 
+                 ywp_id,
+                 ywp_year, 
+                 ywp_name, 
+                 conflictID, 
+                 external_exists, 
+                 external_name, 
+                 external_type_X,
+                 external_type_Y,
+                 external_type_L #external_type_W, external_type_M, external_type_T, external_type_., external_type_I, external_type_O,external_type_U
+                  )
+str(ayuda1)
+head(ayuda1)
+dim(ayuda1)
+
+# Creamos la variable GED50_grouped y la agrupamos como mejor queremos
+ayuda1_grouped <- (  ayuda1 %>%
+                      group_by( conflictID,
+                                external_name
+                               #external_id,
+                               #ywp_id
+                               #ywp_year,
+                               #ywp_name,
+                      ) %>%
+                      summarize(total_X = sum(external_type_X),
+                                total_Y = sum(external_type_Y),
+                                total_L = sum(external_type_X)))
+
+head(ayuda1_grouped)
+fix(ayuda1_grouped)
+filter(ayuda1_grouped, ayuda1_grouped$conflictID == "137")
+filter(ayuda1_grouped, ayuda1_grouped$external_name =="United States")
+str(ayuda1_grouped)

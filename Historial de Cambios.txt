@@ -1,3 +1,10 @@
 18-5-2017
 ged50V5.csv
 Se agrega columnas duration y duration-1
+
+26-5-17
+extsup_smallV2.xls
+La columna external_code se la separa en varias columnas, 1 x ayuda
+Se renombra las columns como ayuda_1, ayuda_2,...
+quedando 46 columnas de ayuda
+
